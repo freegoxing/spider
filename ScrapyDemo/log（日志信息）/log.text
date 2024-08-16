@@ -1,0 +1,23 @@
+在settings.py文件中
+    一般不不修改LOG_LEVEL的级别
+    但如果不想在PowerShell中出现可以在seetings.py文件中
+    LOG_FILE = "logdemo.log"
+    会在文件夹下出现日志文件
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

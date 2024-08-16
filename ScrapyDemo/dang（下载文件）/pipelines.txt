@@ -1,0 +1,104 @@
+一，下载文件
+    1，在settings.py文件中
+        把ITEM_PIPELINES解除注释
+        eg：
+            ITEM_PIPELINES = {
+            #管道有许多个，但有优先级，范围为1~1000，值小优先级高
+           "dangdangwang.pipelines.DangdangwangPipeline": 300,
+           }
+
+
+    2，在items.py文件中
+        把存储的数据‘分类’
+        eg：
+            class DangdangwangItem(scrapy.Item):
+                #图片
+                src = scrapy.Field()
+                #名字
+                name = scrapy.Field()
+                #价格
+                price = scrapy.Field()
+
+
+    3，在 项目.py文件中
+        先导入 items.py文件中的class
+        eg：
+            from 项目.items import DangdangwangItem
+            class DangSpider(scrapy.Spider):
+                name = "dang"
+                allowed_domains = ["category.dangdang.com"]
+                start_urls = ["https://category.dangdang.com/cp01.01.02.00.00.00.html"]
+                def parse(self, response):
+                    book = DangdangwangItem(src=src, name=name, price=price)
+
+
+    4，在pielines.py文件中
+        利用以下代码
+            class DangdangwangPipeline:
+                #在spider执行前运行
+                def open_spider(self, spider):
+                    self.fp = open('book.json', 'w', encoding='utf-8')
+
+
+                #item是yield后面的对象
+                def process_item(self, item, spider):
+                    self.fp.write(str(item))
+                    return item
+
+                # 在spider执行前运行
+                def close_spider(self, spider):
+                    self.fp.close()
+
+
+        不建议直接在def process_item(self, item, spider):中用以下代码
+            with opon('book.json', 'a', encoding='utf-8') as f:
+                #write方法必须是str
+                f.write(str(item))
+
+
+
+
+
+二，多条管道下载
+    1，在pipelines.py中
+        创建下载的类，并保留一开始的def 方法
+        eg：
+        import urllib.request
+        #d多条管道下载
+        class DangDownLoadPipeline:
+            def process_item(self, item, spider):
+
+                src = 'http:' + item.get('src')
+                filename = item.get('name') +'.jpg'
+                urllib.request.urlretrieve(url=src, filename=filename)
+
+                return item
+
+
+    2,在settings.py文件中
+        找到ITEM_PIPELINES，按照相同的格式把自己创建的类加入其中并设计优先级
+        eg：
+            ITEM_PIPELINES = {
+                "dang.pipelines.DangPipeline": 300,
+
+                "dang.pipelines.DangDownLoadPipeline": 301,
+            }
+
+
+
+
+
+三，多页下载
+    1，在pipelines.py中
+        class DSpider(scrapy.Spider):
+                def parse(self, response):
+        下再执行parse
+        eg：
+            yield scrapy.Request(url=url, callback=self.parse)
+        url为新页面url，且scrapy.Request为scrapy中get请求的用法
+
+
+
+
+
+

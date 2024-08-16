@@ -1,0 +1,108 @@
+链接提取器
+1，创建爬虫文件
+    终端输入scrapy genspider -t crawl 名字 url
+    eg:
+        class ReadSpider(CrawlSpider):
+            name = "read"
+            allowed_domains = ["www.dushu.com"]
+            start_urls = ["https://www.dushu.com/book/1002.html"]
+
+            rules = (Rule(LinkExtractor(allow=r"/book/\d+.html"),
+                                        callback="parse_item",
+                                        #follow为是否一直运行到最后一面
+                                        follow=True),
+             )
+
+
+
+
+2，在MySQL创建database
+    create database 数据库名 charset=utf8;
+    use 数据库名；
+    create table book (
+        id int primary key auto_increment,
+        name varchar(128),
+        url varchar(128));
+
+
+
+3, 在settings.py文件
+    DB_HOST = 'localhost'
+    DB_PORT = 3306
+    DB_NAME = '<数据库名>'
+    DB_USER = 'root'
+    DB_PASSWORD = '<password>'
+    DB_CHARSET = 'utf8'
+
+
+4， 在pipelines.py文件中
+    新建一个下载的类
+    from scrapy.utils.project import get_project_settings
+    import pymysql
+
+    class MysqlPipeline:
+        def open_spider(self, spider):
+            settings = get_project_settings()
+            # DB_HOST = 'localhost'
+            # DB_PORT = 3306
+            # DB_NAME = 'spider1'
+            # DB_USER = 'root'
+            # DB_PASSWORD = 'qwer1234QWER'
+            # DB_CHARSET = 'utf8'
+            self.host = settings['DB_HOST']
+            self.port = settings['DB_PORT']
+            self.name = settings['DB_NAME']
+            self.user = settings['DB_USER']
+            self.password = settings['DB_PASSWORD']
+            self.charset = settings['DB_CHARSET']
+
+            self.connect()
+
+        def connect(self):
+            self.conn = pymysql.connect(
+                host=self.host,
+                port=self.port,
+                user=self.user,
+                db=self.name,
+                charset=self.charset,
+                password=self.password
+            )
+
+            self.corsor = self.conn.cursor()
+
+
+        def process_item(self, item, spider):
+
+            sql = 'insert into book(name, url) values("{}", "{}")'.format(item['name'], item['url'])
+            self.corsor.execute(sql)
+            self.conn.commit()
+
+            return item
+
+
+        def close_spider(self, spider):
+            self.corsor.close()
+            self.conn.close()
+
+
+
+5， 在setting.py文件中
+        找到ITEM_PIPELINES，按照相同的格式把自己创建的类加入其中并设计优先级
+        eg：
+            ITEM_PIPELINES = {
+                "dushuwang.pipelines.DushuwangPipeline": 300,
+
+                "dushuwang.pipelines.MysqlPipeline": 301,
+            }
+
+
+
+
+
+
+
+
+
+
+
+
